@@ -47,7 +47,7 @@
 #define PRINTTIME 500     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
 
-float volt_n,volt_w,volt_s,volt_e,current_n,current_w,current_s,current_e;
+float volt_n,volt_w,volt_s,volt_e,current_n,current_w,current_s,current_e,watt_n,watt_w,watt_s,watt_e;
 int pwmval_n,pwmval_w,pwmval_s,pwmval_e = 0; // what we last sent to analogWrite
 
 int EWVector,NSVector = 0;  // direction and speed of change for tracking
@@ -64,8 +64,7 @@ void setup() {
   pinMode(LOAD_W,OUTPUT);
   pinMode(LOAD_S,OUTPUT);
   pinMode(LOAD_E,OUTPUT);
-  
-}                             // valid range is servonull +/- 1000
+}
 
 unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of time
 
@@ -123,10 +122,29 @@ void trackEW() {
     or if the total production of power (into sufficient load?) is too low, maybe we need to seek or do a random walk
 */}
 void trackMPPT() {
-  /*  does calling analogWrite actually reset the clock? yes
-      maybe we have to write the register (for pin11) directly
-      for best results.  But we should always be tuning the buck converter for MPPT
-  */
+  static float watt_last_n,watt_last_w,watt_last_s,watt_last_e = 0;
+  static int vector_n,vector_w,vector_s,vector_e = 1; // which direction we're changing pwmval this time
+  static int pwmval_n,pwmval_w,pwmval_s,pwmval_e = 0; // what we last sent to analogWrite
+  if (watt_last_n > watt_n) vector_n *= -1; // if we had more power last time, change direction
+  if (watt_last_w > watt_w) vector_w *= -1;
+  if (watt_last_s > watt_s) vector_s *= -1;
+  if (watt_last_e > watt_e) vector_e *= -1;
+  pwmval_n += vector_n; // change (up or down) PWM value
+  pwmval_w += vector_w;
+  pwmval_s += vector_s;
+  pwmval_e += vector_e;
+  if (pwmval_n > 254) vector_n = -1;
+  if (pwmval_w > 254) vector_w = -1;
+  if (pwmval_s > 254) vector_s = -1;
+  if (pwmval_e > 254) vector_e = -1;
+  if (pwmval_n < 1) vector_n = 1;
+  if (pwmval_w < 1) vector_w = 1;
+  if (pwmval_s < 1) vector_s = 1;
+  if (pwmval_e < 1) vector_e = 1;
+  watt_last_n = watt_n; // store previous cycle's data
+  watt_last_w = watt_w;
+  watt_last_s = watt_s;
+  watt_last_e = watt_e;
 }
 
 
@@ -139,5 +157,9 @@ void getVoltages() {
   current_w = (analogRead(CURRENT_W) / I_COEFF);
   current_s = (analogRead(CURRENT_S) / I_COEFF);
   current_e = (analogRead(CURRENT_E) / I_COEFF);
+  watt_n = volt_n * current_n;
+  watt_w = volt_w * current_w;
+  watt_s = volt_s * current_s;
+  watt_e = volt_e * current_e;
 }
 
