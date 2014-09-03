@@ -20,6 +20,11 @@
     
 */
 
+#define N 0 // for arrays
+#define W 1
+#define S 2
+#define E 3
+const String nwse = "NWSE"; // for printing info
 #define VOLT_N A0
 #define VOLT_W A1
 #define VOLT_S A2
@@ -47,19 +52,19 @@
 #define PRINTTIME 500     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
 
-float volt_n,volt_w,volt_s,volt_e,current_n,current_w,current_s,current_e,watt_n,watt_w,watt_s,watt_e;
-int pwmval_n,pwmval_w,pwmval_s,pwmval_e = 0; // what we last sent to analogWrite
+float voltage[4],current[4],wattage[4] = {0};
+int pwmval[4] = {0}; // what we last sent to analogWrite
 
 int EWVector,NSVector = 0;  // direction and speed of change for tracking
 int EW,NS,Buck = 0; // position value of eastwest motor, northsouth motor, and buck converter
 
 #include <Servo.h>
-servo ewServo,nsServo; // create servo objects
+Servo ewServo,nsServo; // create servo objects
 
 void setup() {
   Serial.begin(57600);
-  ewServo.attach(EWPin);
-  nsServo.attach(NSPin);
+  ewServo.attach(EWPIN);
+  nsServo.attach(NSPIN);
   pinMode(LOAD_N,OUTPUT);
   pinMode(LOAD_W,OUTPUT);
   pinMode(LOAD_S,OUTPUT);
@@ -88,26 +93,19 @@ void loop() {
 }
 
 void printDisplay() {
-  Serial.print("N:");
-  Serial.print(volt_n,1);
-  Serial.print("V  ");
-  Serial.print(current_n,1);
-  Serial.print("A  W:");
-  Serial.print(volt_w,1);
-  Serial.print("V  ");
-  Serial.print(current_w,1);
-  Serial.print("A  S:");
-  Serial.print(volt_s,1);
-  Serial.print("V  ");
-  Serial.print(current_s,1);
-  Serial.print("A  E:");
-  Serial.print(volt_e,1);
-  Serial.print("V  ");
-  Serial.print(current_e,1);
-  Serial.print("A  EW:");
-  Serial.print(EWControl);
+  String line = "";
+  for (int dir = 0; dir < 4; dir++) {
+    line=nwse[dir]+": ";
+    Serial.print(line);
+    Serial.print(voltage[dir],1);
+    Serial.print("V  ");
+    Serial.print(current[dir]);
+    Serial.print("A  ");
+  }
+  Serial.print("EW:");
+  Serial.print(lastEW);
   Serial.print("  NS:");
-  Serial.println(NSControl);
+  Serial.println(lastNS);
 }
 
 void trackNS() {
@@ -122,44 +120,28 @@ void trackEW() {
     or if the total production of power (into sufficient load?) is too low, maybe we need to seek or do a random walk
 */}
 void trackMPPT() {
-  static float watt_last_n,watt_last_w,watt_last_s,watt_last_e = 0;
-  static int vector_n,vector_w,vector_s,vector_e = 1; // which direction we're changing pwmval this time
-  static int pwmval_n,pwmval_w,pwmval_s,pwmval_e = 0; // what we last sent to analogWrite
-  if (watt_last_n > watt_n) vector_n *= -1; // if we had more power last time, change direction
-  if (watt_last_w > watt_w) vector_w *= -1;
-  if (watt_last_s > watt_s) vector_s *= -1;
-  if (watt_last_e > watt_e) vector_e *= -1;
-  pwmval_n += vector_n; // change (up or down) PWM value
-  pwmval_w += vector_w;
-  pwmval_s += vector_s;
-  pwmval_e += vector_e;
-  if (pwmval_n > 254) vector_n = -1;
-  if (pwmval_w > 254) vector_w = -1;
-  if (pwmval_s > 254) vector_s = -1;
-  if (pwmval_e > 254) vector_e = -1;
-  if (pwmval_n < 1) vector_n = 1;
-  if (pwmval_w < 1) vector_w = 1;
-  if (pwmval_s < 1) vector_s = 1;
-  if (pwmval_e < 1) vector_e = 1;
-  watt_last_n = watt_n; // store previous cycle's data
-  watt_last_w = watt_w;
-  watt_last_s = watt_s;
-  watt_last_e = watt_e;
+  static float watt_last[4] = {0};
+  static int vector[4] = {1}; // which direction we're changing pwmval this time
+  static int pwmval[4] = {0}; // what we last sent to analogWrite
+  for (int dir = 0; dir < 4; dir++) {
+    if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
+    pwmval[dir] += vector[dir]; // change (up or down) PWM value
+    if (pwmval[dir] > 254) vector[dir] = -1;
+    if (pwmval[dir] < 1) vector[dir] = 1;
+    watt_last[dir] = wattage[dir]; // store previous cycle's data
+  }
 }
 
 
 void getVoltages() {
-  volt_n = (analogRead(VOLT_N) / V_COEFF);
-  volt_w = (analogRead(VOLT_W) / V_COEFF);
-  volt_s = (analogRead(VOLT_S) / V_COEFF);
-  volt_e = (analogRead(VOLT_E) / V_COEFF);
-  current_n = (analogRead(CURRENT_N) / I_COEFF);
-  current_w = (analogRead(CURRENT_W) / I_COEFF);
-  current_s = (analogRead(CURRENT_S) / I_COEFF);
-  current_e = (analogRead(CURRENT_E) / I_COEFF);
-  watt_n = volt_n * current_n;
-  watt_w = volt_w * current_w;
-  watt_s = volt_s * current_s;
-  watt_e = volt_e * current_e;
+  voltage[N] = (analogRead(VOLT_N) / V_COEFF);
+  voltage[W] = (analogRead(VOLT_W) / V_COEFF);
+  voltage[S] = (analogRead(VOLT_S) / V_COEFF);
+  voltage[E] = (analogRead(VOLT_E) / V_COEFF);
+  current[N] = (analogRead(CURRENT_N) / I_COEFF);
+  current[W] = (analogRead(CURRENT_W) / I_COEFF);
+  current[S] = (analogRead(CURRENT_S) / I_COEFF);
+  current[E] = (analogRead(CURRENT_E) / I_COEFF);
+  for (int dir = 0; dir < 4; dir++) wattage[dir] = voltage[dir] * current[dir];
 }
 
