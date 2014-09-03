@@ -53,6 +53,9 @@ const String nwse = "NWSE"; // for printing info
 #define MPPTTIME 25     // time between load tracking calls
 
 float voltage[4],current[4],wattage[4] = {0};
+float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
+int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
+
 int pwmval[4] = {0}; // what we last sent to analogWrite
 
 int EWVector,NSVector = 0;  // direction and speed of change for tracking
@@ -76,6 +79,13 @@ unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of 
 void loop() {
   timenow = millis();  // get the system time for this instance of loop()
   getVoltages();  // measure all voltages and current wattage
+
+  for (int dir = 0; dir < 4; dir++) { // for averaging
+    nwseWattAdder[dir] += wattage[dir];
+    MPPTWattAdder[dir] += wattage[dir];
+    printWattAdder[dir] += wattage[dir];
+    nsWattAdds++;ewWattAdds++;MPPTWattAdds++;printWattAdds++;
+  }
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
     printDisplay();
@@ -97,11 +107,15 @@ void printDisplay() {
   for (int dir = 0; dir < 4; dir++) {
     line=nwse[dir]+": ";
     Serial.print(line);
+    Serial.print(printWattAdder[dir]/printWattAdds,1);
+    printWattAdder[dir] = 0; // clear out the adder
+    Serial.print("W  ");
     Serial.print(voltage[dir],1);
     Serial.print("V  ");
     Serial.print(current[dir]);
     Serial.print("A  ");
   }
+  printWattAdds = 0;
   Serial.print("EW:");
   Serial.print(lastEW);
   Serial.print("  NS:");
