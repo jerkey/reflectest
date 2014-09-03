@@ -35,12 +35,10 @@
 #define V_COEFF 123.34 // divide ADC reading by this to get voltage
 #define I_COEFF 123.34 // divide ADC reading by this to get current
 
-#define EWNULL 3035  // eastwest midpoint
-#define NSNULL 3000  // northsouth midpoint
-#define EWRANGE 2000 // eastwest range away from midpoint
-#define NSRANGE 1000 // northsouth range away from midpoint
-#define EWCONTROL OCR1A       // eastwest servo is connected to Arduino pin9
-#define NSCONTROL OCR1B     // northsouth servo is connected to Arduino pin10
+#define EWNULL 90  // eastwest midpoint
+#define NSNULL 70  // northsouth midpoint
+#define EWRANGE 80 // eastwest range away from midpoint
+#define NSRANGE 60 // northsouth range away from midpoint
 #define NSPIN 9 // pin number for northsouth servo
 #define EWPIN 10 // pin number for eastwest servo
 
@@ -55,20 +53,18 @@ int pwmval_n,pwmval_w,pwmval_s,pwmval_e = 0; // what we last sent to analogWrite
 int EWVector,NSVector = 0;  // direction and speed of change for tracking
 int EW,NS,Buck = 0; // position value of eastwest motor, northsouth motor, and buck converter
 
+#include <Servo.h>
+servo ewServo,nsServo; // create servo objects
+
 void setup() {
   Serial.begin(57600);
-  pinMode(EWPin,OUTPUT);
-  pinMode(NSPin,OUTPUT);
+  ewServo.attach(EWPin);
+  nsServo.attach(NSPin);
   pinMode(LOAD_N,OUTPUT);
   pinMode(LOAD_W,OUTPUT);
   pinMode(LOAD_S,OUTPUT);
   pinMode(LOAD_E,OUTPUT);
   
-  TCCR1B = 0b00011010;        // Fast PWM, top in ICR1, /8 prescale (.5 uSec)
-  TCCR1A = 0b10100010;        // clear on compare match, fast PWM
-  ICR1 =  39999;              // 40,000 clocks @ .5 uS = 20mS
-  EWControl = EWNull;         // controls chip pin 15  ARDUINO pin 9
-  NSControl = NSNull;         // controls chip pin 16  ARDUINO pin 10
 }                             // valid range is servonull +/- 1000
 
 unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of time
