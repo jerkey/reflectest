@@ -50,7 +50,7 @@ const String nwse = "NWSE"; // for printing info
 #define TRACKEWTIME 100  // time between eastwest tracking calls
 #define TRACKNSTIME 400  // time between northsouth tracking calls
 #define PRINTTIME 500     // time between printing display
-#define MPPTTIME 25     // time between load tracking calls
+#define MPPTTIME 50     // time between load tracking calls
 
 float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
@@ -134,18 +134,22 @@ void trackEW() {
     or if the total production of power (into sufficient load?) is too low, maybe we need to seek or do a random walk
 */}
 void trackMPPT() {
+  if (MPPTWattAdds < 2) return; // we need averaged wattage
   static float watt_last[4] = {0};
   static int vector[4] = {1}; // which direction we're changing pwmval this time
   static int pwmval[4] = {0}; // what we last sent to analogWrite
+  float wattage[4]; // note this should obscure the global wattage[] !!!
   for (int dir = 0; dir < 4; dir++) {
+    wattage[dir] = MPPTWattAdder[dir] / MPPTWattAdds;
+    MPPTWattAdder[dir] = 0; // clear them out
     if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
     pwmval[dir] += vector[dir]; // change (up or down) PWM value
     if (pwmval[dir] > 254) vector[dir] = -1;
     if (pwmval[dir] < 1) vector[dir] = 1;
     watt_last[dir] = wattage[dir]; // store previous cycle's data
   }
+  MPPTWattAdds = 0; // clear it out
 }
-
 
 void getVoltages() {
   voltage[N] = (analogRead(VOLT_N) / V_COEFF);
@@ -158,4 +162,3 @@ void getVoltages() {
   current[E] = (analogRead(CURRENT_E) / I_COEFF);
   for (int dir = 0; dir < 4; dir++) wattage[dir] = voltage[dir] * current[dir];
 }
-
