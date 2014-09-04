@@ -10,7 +10,7 @@
     positive terminal and the drain of N-channel FETs
 
     The N-channel FETs' sources are grounded.  Their gates are connected
-    to a 0.1uF capacitor to ground, and a 1K resistor to digital pins 3,
+    to a 0.1uF capacitor to ground, and a 2K resistor to digital pins 3,
     5, 6 and 11 (North West South East in that order for everything)
     This way, those PWM channels can control the gate voltages precisely.
 
@@ -41,8 +41,8 @@ const String nwse = "NWSE"; // for printing info
 #define LOAD_W 5
 #define LOAD_S 6
 #define LOAD_E 11
-#define V_COEFF 123.34 // divide ADC reading by this to get voltage
-#define I_COEFF 123.34 // divide ADC reading by this to get current
+#define V_COEFF 310.0 // ADC ratio 1023 / 3.3v = 310.0
+#define I_COEFF 102.3 // ADC ratio 1023 / 3.3v * 1000K / 330K = 102.3
 
 #define EDIR 1 // which direction servo value increments for east
 #define NDIR 1 // which direction servo value increments for north
@@ -177,16 +177,18 @@ void trackNS() {
 void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
   static float watt_last[4] = {0};
-  static int vector[4] = {1}; // which direction we're changing pwmval this time
-  static int pwmval[4] = {0}; // what we last sent to analogWrite
+  static int vector[4] = {1}; // which direction we're changing pwmVal this time
+  static int pwmVal[4] = {0}; // what we last sent to analogWrite
+  const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
   float wattage[4]; // note this should obscure the global wattage[] !!!
   for (int dir = 0; dir < 4; dir++) {
     wattage[dir] = MPPTWattAdder[dir] / MPPTWattAdds;
     MPPTWattAdder[dir] = 0; // clear them out
     if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
-    pwmval[dir] += vector[dir]; // change (up or down) PWM value
-    if (pwmval[dir] > 254) vector[dir] = -1;
-    if (pwmval[dir] < 1) vector[dir] = 1;
+    pwmVal[dir] += vector[dir]; // change (up or down) PWM value
+    analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
+    if (pwmVal[dir] > 254) vector[dir] = -1;
+    if (pwmVal[dir] < 1) vector[dir] = 1;
     watt_last[dir] = wattage[dir]; // store previous cycle's data
   }
   MPPTWattAdds = 0; // clear it out
