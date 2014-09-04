@@ -19,6 +19,10 @@
     The motors aim the assembly toward the sun to maximize solar collection.
     
 */
+#define EWHYST 0.1 // how much wattage difference calls for tracking
+#define NSHYST 0.1
+#define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
+#define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
 
 #define N 0 // for arrays
 #define W 1
@@ -40,6 +44,8 @@ const String nwse = "NWSE"; // for printing info
 #define V_COEFF 123.34 // divide ADC reading by this to get voltage
 #define I_COEFF 123.34 // divide ADC reading by this to get current
 
+#define EDIR 1 // which direction servo value increments for east
+#define NDIR 1 // which direction servo value increments for north
 #define EWNULL 90  // eastwest midpoint
 #define NSNULL 70  // northsouth midpoint
 #define EWRANGE 80 // eastwest range away from midpoint
@@ -56,10 +62,11 @@ float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 
-int pwmval[4] = {0}; // what we last sent to analogWrite
-
-int EWVector,NSVector = 0;  // direction and speed of change for tracking
-int EW,NS,Buck = 0; // position value of eastwest motor, northsouth motor, and buck converter
+// int EWVector,NSVector = 0;  // direction and speed of change for tracking
+int EW = EWNULL; // position value of eastwest servo
+int NS = NSNULL; // position value of northsouth servo
+// int lastEW = EWNULL; // where were we last time around
+// int lastNS = NSNULL; // where were we last time around
 
 #include <Servo.h>
 Servo ewServo,nsServo; // create servo objects
@@ -122,17 +129,54 @@ void printDisplay() {
   Serial.println(lastNS);
 }
 
-void trackNS() {
-/*  compare north and south voltages, with remembered coefficient (compare north*NSCoeff to south) 
-    and only track if the difference is more than a certain factor.  
-    or if the total production of power (into sufficient load?) is too low, maybe we need to seek or do a random walk
-*/
-}
 void trackEW() {
-/*  compare north and south voltages, with remembered coefficient (compare north*NSCoeff to south) 
-    and only track if the difference is more than a certain factor.  
-    or if the total production of power (into sufficient load?) is too low, maybe we need to seek or do a random walk
-*/}
+  static int walkVector = 1; // which direction we will wander
+  // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
+  float east = nwseWattAdder[E] / ewWattAdds;
+  float west = nwseWattAdder[W] / ewWattAdds;
+  nwseWattAdder[E] = 0; nwseWattAdder[W] = 0; ewWattAdds = 0; // clear them out
+  // float ratio = east / west;
+  // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
+
+  if (east + west < EWWAYOFF) { // almost no wattage!  we need to wander to find power
+    if (abs(EW - EWNULL) >= EWRANGE) walkVector *= -1; // if at end of travel, change direction
+    EW += walkVector; // go in the direction we're wandering
+    ewServo.write(EW); // send it to the new location
+  }
+  else if ((east > west + EWHYST) && (abs(EW - EWNULL) < EWRANGE)) {
+    EW += EDIR; // move the servo EAST
+    ewServo.write(EW); // send it to the new location
+  }
+  else if ((east < west + EWHYST) && (abs(EW - EWNULL) < EWRANGE)) {
+    EW -= EDIR; // move the servo WEST
+    ewServo.write(EW); // send it to the new location
+  }
+}
+
+void trackNS() {
+  static int walkVector = 1; // which direction we will wander
+  // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
+  float north = nwseWattAdder[N] / nsWattAdds;
+  float south = nwseWattAdder[S] / nsWattAdds;
+  nwseWattAdder[N] = 0; nwseWattAdder[S] = 0; nsWattAdds = 0; // clear them out
+  // float ratio = north / south;
+  // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
+
+  if (north + south < NSWAYOFF) { // almost no wattage!  we need to wander to find power
+    if (abs(NS - NSNULL) >= NSRANGE) walkVector *= -1; // if at end of travel, change direction
+    NS += walkVector; // go in the direction we're wandering
+    nsServo.write(NS); // send it to the new location
+  }
+  else if ((north > south + NSHYST) && (abs(NS - NSNULL) < NSRANGE)) {
+    NS += NDIR; // move the servo EAST
+    nsServo.write(NS); // send it to the new location
+  }
+  else if ((north < south + NSHYST) && (abs(NS - NSNULL) < NSRANGE)) {
+    NS -= NDIR; // move the servo WEST
+    ewServo.write(NS); // send it to the new location
+  }
+}
+
 void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
   static float watt_last[4] = {0};
