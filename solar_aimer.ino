@@ -100,7 +100,7 @@ void loop() {
   } else if (timenow - lastNS > TRACKNSTIME) {
     trackNS();
     lastNS = timenow;
-  } else if (timenow - lastMPPT > TRACKNSTIME) {
+  } else if (timenow - lastMPPT > MPPTTIME) {
     trackMPPT();
     lastMPPT = timenow;
   }
