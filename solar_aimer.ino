@@ -62,11 +62,8 @@ float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 
-// int EWVector,NSVector = 0;  // direction and speed of change for tracking
 int EW = EWNULL; // position value of eastwest servo
 int NS = NSNULL; // position value of northsouth servo
-// int lastEW = EWNULL; // where were we last time around
-// int lastNS = NSNULL; // where were we last time around
 
 #include <Servo.h>
 Servo ewServo,nsServo; // create servo objects
@@ -124,9 +121,9 @@ void printDisplay() {
   }
   printWattAdds = 0;
   Serial.print("EW:");
-  Serial.print(lastEW);
+  Serial.print(EW);
   Serial.print("  NS:");
-  Serial.println(lastNS);
+  Serial.println(NS);
 }
 
 void trackEW() {
