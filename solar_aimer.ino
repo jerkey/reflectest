@@ -19,6 +19,7 @@
     The motors aim the assembly toward the sun to maximize solar collection.
     
 */
+#define BAUDRATE 57600
 #define EWHYST 0.1 // how much wattage difference calls for tracking
 #define NSHYST 0.1
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
@@ -44,14 +45,14 @@ const String nwse = "NWSE"; // for printing info
 #define V_COEFF 310.0 // ADC ratio 1023 / 3.3v = 310.0
 #define I_COEFF 102.3 // ADC ratio 1023 / 3.3v * 1000K / 330K = 102.3
 
-#define EDIR 1 // which direction servo value increments for east
-#define NDIR 1 // which direction servo value increments for north
+#define EDIR -1 // which direction servo value increments for east
+#define NDIR -1 // which direction servo value increments for north
 #define EWNULL 90  // eastwest midpoint
-#define NSNULL 70  // northsouth midpoint
+#define NSNULL 20  // northsouth midpoint
 #define EWRANGE 80 // eastwest range away from midpoint
-#define NSRANGE 60 // northsouth range away from midpoint
-#define NSPIN 9 // pin number for northsouth servo
-#define EWPIN 10 // pin number for eastwest servo
+#define NSRANGE 30 // northsouth range away from midpoint
+#define NSPIN 10 // pin number for northsouth servo
+#define EWPIN 9 // pin number for eastwest servo
 
 #define TRACKEWTIME 100  // time between eastwest tracking calls
 #define TRACKNSTIME 400  // time between northsouth tracking calls
@@ -69,7 +70,7 @@ int NS = NSNULL; // position value of northsouth servo
 Servo ewServo,nsServo; // create servo objects
 
 void setup() {
-  Serial.begin(57600);
+  Serial.begin(BAUDRATE);
   ewServo.attach(EWPIN);
   nsServo.attach(NSPIN);
   pinMode(LOAD_N,OUTPUT);
@@ -109,8 +110,8 @@ void loop() {
 void printDisplay() {
   String line = "";
   for (int dir = 0; dir < 4; dir++) {
-    line=nwse[dir]+": ";
-    Serial.print(line);
+    // line=nwse[dir]+": ";
+    Serial.print(nwse[dir]);
     Serial.print(printWattAdder[dir]/printWattAdds,1);
     printWattAdder[dir] = 0; // clear out the adder
     Serial.print("W  ");
