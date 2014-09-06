@@ -62,6 +62,8 @@ const String nwse = "NWSE"; // for printing info
 float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
+const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
+int pwmVal[4] = {0}; // what we last sent to analogWrite
 
 int EW = EWNULL; // position value of eastwest servo
 int NS = NSNULL; // position value of northsouth servo
@@ -115,10 +117,12 @@ void printDisplay() {
     Serial.print(printWattAdder[dir]/printWattAdds,1);
     printWattAdder[dir] = 0; // clear out the adder
     Serial.print("W  ");
+    Serial.print(pwmVal[dir]);
+    Serial.print("PWM  ");
     Serial.print(voltage[dir],1);
     Serial.print("V  ");
     Serial.print(current[dir]);
-    Serial.print("A  ");
+    Serial.print("A    ");
   }
   printWattAdds = 0;
   Serial.print("EW:");
