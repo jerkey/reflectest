@@ -104,7 +104,7 @@ void loop() {
     trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
-    trackMPPT();
+    // trackMPPT();
     lastMPPT = timenow;
   }
 }
@@ -114,15 +114,15 @@ void printDisplay() {
   for (int dir = 0; dir < 4; dir++) {
     // line=nwse[dir]+": ";
     Serial.print(nwse[dir]);
-    Serial.print(printWattAdder[dir]/printWattAdds,1);
-    printWattAdder[dir] = 0; // clear out the adder
-    Serial.print("W  ");
-    Serial.print(pwmVal[dir]);
-    Serial.print("PWM  ");
+    // Serial.print(printWattAdder[dir]/printWattAdds,1);
+    // printWattAdder[dir] = 0; // clear out the adder
+    // Serial.print("W  ");
+    // Serial.print(pwmVal[dir]);
+    // Serial.print("PWM  ");
     Serial.print(voltage[dir],1);
-    Serial.print("V  ");
-    Serial.print(current[dir]);
-    Serial.print("A    ");
+    Serial.print("V    ");
+    // Serial.print(current[dir]);
+    // Serial.print("A    ");
   }
   printWattAdds = 0;
   Serial.print("EW:");
@@ -134,8 +134,8 @@ void printDisplay() {
 void trackEW() {
   static int walkVector = 1; // which direction we will wander
   // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
-  float east = nwseWattAdder[E] / ewWattAdds;
-  float west = nwseWattAdder[W] / ewWattAdds;
+  float east = voltage[E]; // nwseWattAdder[E] / ewWattAdds;
+  float west = voltage[W]; // nwseWattAdder[W] / ewWattAdds;
   nwseWattAdder[E] = 0; nwseWattAdder[W] = 0; ewWattAdds = 0; // clear them out
   // float ratio = east / west;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
@@ -158,8 +158,8 @@ void trackEW() {
 void trackNS() {
   static int walkVector = 1; // which direction we will wander
   // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
-  float north = nwseWattAdder[N] / nsWattAdds;
-  float south = nwseWattAdder[S] / nsWattAdds;
+  float north = voltage[N]; // nwseWattAdder[N] / nsWattAdds;
+  float south = voltage[S]; // nwseWattAdder[S] / nsWattAdds;
   nwseWattAdder[N] = 0; nwseWattAdder[S] = 0; nsWattAdds = 0; // clear them out
   // float ratio = north / south;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
