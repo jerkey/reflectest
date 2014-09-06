@@ -24,7 +24,7 @@
 #define NSHYST 0.1
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
 #define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
-
+#define MINVOLT 0.7 // voltage below which PWM load must be restarted
 #define N 0 // for arrays
 #define W 1
 #define S 2
@@ -179,13 +179,15 @@ void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
   static float watt_last[4] = {0};
   static int vector[4] = {1}; // which direction we're changing pwmVal this time
-  static int pwmVal[4] = {0}; // what we last sent to analogWrite
-  const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
   float wattage[4]; // note this should obscure the global wattage[] !!!
   for (int dir = 0; dir < 4; dir++) {
     wattage[dir] = MPPTWattAdder[dir] / MPPTWattAdds;
     MPPTWattAdder[dir] = 0; // clear them out
     if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
+    if (voltage[dir] < MINVOLT) {
+      vector[dir] = 1; // start over
+      pwmVal[dir] = 0; // start over
+    }
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
     if (pwmVal[dir] > 254) vector[dir] = -1;
