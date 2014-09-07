@@ -20,8 +20,8 @@
     
 */
 #define BAUDRATE 57600
-#define EWHYST 0.1 // how much wattage difference calls for tracking
-#define NSHYST 0.1
+#define EWHYST 0.01 // how much difference calls for tracking
+#define NSHYST 0.01
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
 #define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
 #define MINVOLT 0.7 // voltage below which PWM load must be restarted
@@ -45,10 +45,10 @@ const String nwse = "NWSE"; // for printing info
 #define V_COEFF 310.0 // ADC ratio 1023 / 3.3v = 310.0
 #define I_COEFF 102.3 // ADC ratio 1023 / 3.3v * 1000K / 330K = 102.3
 
-#define EDIR -1 // which direction servo value increments for east
+#define EDIR 1 // which direction servo value increments for east
 #define NDIR -1 // which direction servo value increments for north
 #define EWNULL 90  // eastwest midpoint
-#define NSNULL 20  // northsouth midpoint
+#define NSNULL 40  // northsouth midpoint
 #define EWRANGE 80 // eastwest range away from midpoint
 #define NSRANGE 30 // northsouth range away from midpoint
 #define NSPIN 10 // pin number for northsouth servo
@@ -140,17 +140,18 @@ void trackEW() {
   // float ratio = east / west;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
 
-  if (east + west < EWWAYOFF) { // almost no wattage!  we need to wander to find power
-    if (abs(EW - EWNULL) >= EWRANGE) walkVector *= -1; // if at end of travel, change direction
-    EW += walkVector; // go in the direction we're wandering
-    ewServo.write(EW); // send it to the new location
-  }
-  else if ((east > west + EWHYST) && (abs(EW - EWNULL) < EWRANGE)) {
-    EW += EDIR; // move the servo EAST
-    ewServo.write(EW); // send it to the new location
-  }
-  else if ((east < west + EWHYST) && (abs(EW - EWNULL) < EWRANGE)) {
+  // if (east + west < EWWAYOFF) { // almost no wattage!  we need to wander to find power
+  //   if (abs(EW - EWNULL) >= EWRANGE) walkVector *= -1; // if at end of travel, change direction
+  //   EW += walkVector; // go in the direction we're wandering
+  //   ewServo.write(EW); // send it to the new location
+  // }
+  // else 
+  if ((east > west + EWHYST) && (EW!=EWNULL-EDIR*EWRANGE)) {
     EW -= EDIR; // move the servo WEST
+    ewServo.write(EW); // send it to the new location
+  }
+  else if ((west > east + EWHYST) && (EW!=EWNULL+EDIR*EWRANGE)) {
+    EW += EDIR; // move the servo EAST
     ewServo.write(EW); // send it to the new location
   }
 }
@@ -164,18 +165,19 @@ void trackNS() {
   // float ratio = north / south;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
 
-  if (north + south < NSWAYOFF) { // almost no wattage!  we need to wander to find power
-    if (abs(NS - NSNULL) >= NSRANGE) walkVector *= -1; // if at end of travel, change direction
-    NS += walkVector; // go in the direction we're wandering
+  // if (north + south < NSWAYOFF) { // almost no wattage!  we need to wander to find power
+  //   if (abs(NS - NSNULL) >= NSRANGE) walkVector *= -1; // if at end of travel, change direction
+  //   NS += walkVector; // go in the direction we're wandering
+  //   nsServo.write(NS); // send it to the new location
+  // }
+  // else 
+  if ((north > south + NSHYST) && (NS!=NSNULL-NDIR*NSRANGE)) {
+    NS -= NDIR; // move the servo SOUTH
     nsServo.write(NS); // send it to the new location
   }
-  else if ((north > south + NSHYST) && (abs(NS - NSNULL) < NSRANGE)) {
-    NS += NDIR; // move the servo EAST
+  else if ((south > north + NSHYST) && (NS!=NSNULL+NDIR*NSRANGE)) {
+    NS += NDIR; // move the servo NORTH
     nsServo.write(NS); // send it to the new location
-  }
-  else if ((north < south + NSHYST) && (abs(NS - NSNULL) < NSRANGE)) {
-    NS -= NDIR; // move the servo WEST
-    ewServo.write(NS); // send it to the new location
   }
 }
 
