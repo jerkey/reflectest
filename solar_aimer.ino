@@ -104,7 +104,7 @@ void loop() {
     trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
-    // trackMPPT();
+    trackMPPT();
     lastMPPT = timenow;
   }
 }
@@ -117,15 +117,15 @@ void printDisplay() {
     if (order == S) dir = W; // NORTH SOUTH WEST EAST
     line=String(nwse[dir])+": "; // print the letter of the direction
     Serial.print(line);
-    // Serial.print(printWattAdder[dir]/printWattAdds,1);
-    // printWattAdder[dir] = 0; // clear out the adder
-    // Serial.print("W  ");
-    // Serial.print(pwmVal[dir]);
-    // Serial.print("PWM  ");
     Serial.print(voltage[dir],1);
-    Serial.print("V    ");
-    // Serial.print(current[dir]);
-    // Serial.print("A    ");
+    Serial.print("V  ");
+    Serial.print(current[dir],1);
+    Serial.print("A  ");
+    Serial.print(printWattAdder[dir]/printWattAdds,1);
+    printWattAdder[dir] = 0; // clear out the adder
+    Serial.print("W  ");
+    Serial.print(pwmVal[dir]);
+    Serial.print("PWM   ");
   }
   printWattAdds = 0;
   Serial.print("NS:");
