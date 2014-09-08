@@ -197,10 +197,10 @@ void trackMPPT() {
       vector[dir] = 1; // start over
       pwmVal[dir] = 0; // start over
     }
+    if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
+    if (pwmVal[dir] < 1) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
-    if (pwmVal[dir] > 254) vector[dir] = -1;
-    if (pwmVal[dir] < 1) vector[dir] = 1;
     watt_last[dir] = wattage[dir]; // store previous cycle's data
   }
   MPPTWattAdds = 0; // clear it out
