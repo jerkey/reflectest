@@ -111,9 +111,12 @@ void loop() {
 
 void printDisplay() {
   String line = "";
-  for (int dir = 0; dir < 4; dir++) {
-    // line=nwse[dir]+": ";
-    Serial.print(nwse[dir]);
+  for (int order = 0; order < 4; order++) {
+    int dir = order;
+    if (order == W) dir = S; // i want them to print in order
+    if (order == S) dir = W; // NORTH SOUTH WEST EAST
+    line=String(nwse[dir])+": "; // print the letter of the direction
+    Serial.print(line);
     // Serial.print(printWattAdder[dir]/printWattAdds,1);
     // printWattAdder[dir] = 0; // clear out the adder
     // Serial.print("W  ");
@@ -125,10 +128,10 @@ void printDisplay() {
     // Serial.print("A    ");
   }
   printWattAdds = 0;
-  Serial.print("EW:");
-  Serial.print(EW);
-  Serial.print("  NS:");
-  Serial.println(NS);
+  Serial.print("NS:");
+  Serial.print(NS);
+  Serial.print("   EW:");
+  Serial.println(EW);
 }
 
 void trackEW() {
