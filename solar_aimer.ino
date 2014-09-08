@@ -47,15 +47,15 @@ const String nwse = "NWSE"; // for printing info
 
 #define EDIR 1 // which direction servo value increments for east
 #define NDIR -1 // which direction servo value increments for north
-#define EWNULL 90  // eastwest midpoint
-#define NSNULL 40  // northsouth midpoint
-#define EWRANGE 80 // eastwest range away from midpoint
-#define NSRANGE 30 // northsouth range away from midpoint
+#define EWNULL 1500 // eastwest midpoint
+#define NSNULL 1425 // northsouth midpoint
+#define EWRANGE 900 // eastwest range away from midpoint
+#define NSRANGE 375 // northsouth range away from midpoint
 #define NSPIN 10 // pin number for northsouth servo
 #define EWPIN 9 // pin number for eastwest servo
 
-#define TRACKEWTIME 100  // time between eastwest tracking calls
-#define TRACKNSTIME 400  // time between northsouth tracking calls
+#define TRACKEWTIME 40  // time between eastwest tracking calls
+#define TRACKNSTIME 40  // time between northsouth tracking calls
 #define PRINTTIME 500     // time between printing display
 #define MPPTTIME 50     // time between load tracking calls
 
@@ -143,16 +143,16 @@ void trackEW() {
   // if (east + west < EWWAYOFF) { // almost no wattage!  we need to wander to find power
   //   if (abs(EW - EWNULL) >= EWRANGE) walkVector *= -1; // if at end of travel, change direction
   //   EW += walkVector; // go in the direction we're wandering
-  //   ewServo.write(EW); // send it to the new location
+  //   ewServo.writeMicroseconds(EW); // send it to the new location
   // }
   // else 
   if ((east > west + EWHYST) && (EW!=EWNULL-EDIR*EWRANGE)) {
     EW -= EDIR; // move the servo WEST
-    ewServo.write(EW); // send it to the new location
+    ewServo.writeMicroseconds(EW); // send it to the new location
   }
   else if ((west > east + EWHYST) && (EW!=EWNULL+EDIR*EWRANGE)) {
     EW += EDIR; // move the servo EAST
-    ewServo.write(EW); // send it to the new location
+    ewServo.writeMicroseconds(EW); // send it to the new location
   }
 }
 
@@ -168,16 +168,16 @@ void trackNS() {
   // if (north + south < NSWAYOFF) { // almost no wattage!  we need to wander to find power
   //   if (abs(NS - NSNULL) >= NSRANGE) walkVector *= -1; // if at end of travel, change direction
   //   NS += walkVector; // go in the direction we're wandering
-  //   nsServo.write(NS); // send it to the new location
+  //   nsServo.writeMicroseconds(NS); // send it to the new location
   // }
   // else 
   if ((north > south + NSHYST) && (NS!=NSNULL-NDIR*NSRANGE)) {
     NS -= NDIR; // move the servo SOUTH
-    nsServo.write(NS); // send it to the new location
+    nsServo.writeMicroseconds(NS); // send it to the new location
   }
   else if ((south > north + NSHYST) && (NS!=NSNULL+NDIR*NSRANGE)) {
     NS += NDIR; // move the servo NORTH
-    nsServo.write(NS); // send it to the new location
+    nsServo.writeMicroseconds(NS); // send it to the new location
   }
 }
 
