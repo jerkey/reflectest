@@ -121,7 +121,7 @@ void printDisplay() {
     Serial.print("V  ");
     Serial.print(current[dir],2);
     Serial.print("A  ");
-    Serial.print(printWattAdder[dir]/printWattAdds,1);
+    Serial.print(printWattAdder[dir]/printWattAdds,3);
     printWattAdder[dir] = 0; // clear out the adder
     Serial.print("W  ");
     Serial.print(pwmVal[dir]);
@@ -190,7 +190,7 @@ void trackMPPT() {
   static int vector[4] = {1}; // which direction we're changing pwmVal this time
   float wattage[4]; // note this should obscure the global wattage[] !!!
   for (int dir = 0; dir < 4; dir++) {
-    wattage[dir] = MPPTWattAdder[dir] / MPPTWattAdds;
+    wattage[dir] = round((MPPTWattAdder[dir] / MPPTWattAdds) * 1000); // round to 1mW
     MPPTWattAdder[dir] = 0; // clear them out
     if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
     if (voltage[dir] < MINVOLT) {
