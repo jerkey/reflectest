@@ -55,17 +55,20 @@ const String nwse = "NWSE"; // for printing info
 #define NSRANGE 375 // northsouth range away from midpoint
 #define NSPIN 10 // pin number for northsouth servo
 #define EWPIN 9 // pin number for eastwest servo
-
+#define LOADPIN 2 // short this pin to ground to enable loading
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
 #define PRINTTIME 500     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
+#define AIM 1 // bit corresponding to aiming collector
+#define MPPT 2 // bit corresponding to current tracking
 
 float voltage[4],current[4],wattage[4] = {0,0,0,0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
 int pwmVal[4] = {FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD}; // what we last sent to analogWrite
+unsigned mode = AIM; // what mode of operation we are in
 
 int EW = EWNULL; // position value of eastwest servo
 int NS = NSNULL; // position value of northsouth servo
@@ -81,6 +84,7 @@ void setup() {
   pinMode(LOAD_W,OUTPUT);
   pinMode(LOAD_S,OUTPUT);
   pinMode(LOAD_E,OUTPUT);
+  digitalWrite(LOADPIN,HIGH); // turn on pull-up resistor on input
 }
 
 unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of time
@@ -88,7 +92,11 @@ unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of 
 void loop() {
   timenow = millis();  // get the system time for this instance of loop()
   getVoltages();  // measure all voltages and current wattage
-
+  if (digitalRead(LOADPIN)) {
+    mode = AIM;
+  } else {
+    mode = MPPT;
+  }
   for (int dir = 0; dir < 4; dir++) { // for averaging
     nwseWattAdder[dir] += wattage[dir];
     MPPTWattAdder[dir] += wattage[dir];
@@ -100,10 +108,10 @@ void loop() {
     printDisplay();
     lastPrint = timenow;
   } else if (timenow - lastEW > TRACKEWTIME) {
-    trackEW();
+    if (mode & AIM) trackEW();
     lastEW = timenow;
   } else if (timenow - lastNS > TRACKNSTIME) {
-    trackNS();
+    if (mode & AIM) trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
     trackMPPT();
@@ -127,9 +135,11 @@ void printDisplay() {
     printWattAdder[dir] = 0; // clear out the adder
     Serial.print("W  ");
     Serial.print(pwmVal[dir]);
+    if (mode & MPPT) Serial.print("*");
     Serial.print("PWM   ");
   }
   printWattAdds = 0;
+  if (mode & AIM) Serial.print("*");
   Serial.print("NS:");
   Serial.print(NS);
   Serial.print("   EW:");
@@ -203,6 +213,7 @@ void trackMPPT() {
     if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
     if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
+    if ((mode & MPPT) == 0) pwmVal[dir] = FET_THRESHOLD; // MPPT is disabled right now
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
     watt_last[dir] = wattage[dir]; // store previous cycle's data
   }
