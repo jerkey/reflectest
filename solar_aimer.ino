@@ -42,8 +42,8 @@ const String nwse = "NWSE"; // for printing info
 #define LOAD_W 5
 #define LOAD_S 6
 #define LOAD_E 11
-#define V_COEFF 196.3 // ADC ratio 1023 / 3.3v = 310.0
-#define I_COEFF 608.1 // ADC ratio 1023 / 3.3v * 1000K / 330K = 102.3
+#define V_COEFF 205.37 // ADC ratio 1023 / 3.3v = 310.0
+#define I_COEFF 623.4 // ADC ratio 1023 / 3.3v * 1000K / 330K = 102.3
 
 #define EDIR 1 // which direction servo value increments for east
 #define NDIR -1 // which direction servo value increments for north
