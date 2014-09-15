@@ -61,11 +61,11 @@ const String nwse = "NWSE"; // for printing info
 #define PRINTTIME 500     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
 
-float voltage[4],current[4],wattage[4] = {0};
-float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
+float voltage[4],current[4],wattage[4] = {0,0,0,0};
+float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
-int pwmVal[4] = {FET_THRESHOLD}; // what we last sent to analogWrite
+int pwmVal[4] = {FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD}; // what we last sent to analogWrite
 
 int EW = EWNULL; // position value of eastwest servo
 int NS = NSNULL; // position value of northsouth servo
@@ -188,8 +188,8 @@ void trackNS() {
 
 void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
-  static float watt_last[4] = {0};
-  static int vector[4] = {1}; // which direction we're changing pwmVal this time
+  static float watt_last[4] = {0,0,0,0};
+  static int vector[4] = {1,1,1,1}; // which direction we're changing pwmVal this time
   float wattage[4]; // note this should obscure the global wattage[] !!!
   for (int dir = 0; dir < 4; dir++) {
     wattage[dir] = round((MPPTWattAdder[dir] / MPPTWattAdds) * 1000); // round to 1mW
