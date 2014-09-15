@@ -91,8 +91,8 @@ void loop() {
     nwseWattAdder[dir] += wattage[dir];
     MPPTWattAdder[dir] += wattage[dir];
     printWattAdder[dir] += wattage[dir];
-    nsWattAdds++;ewWattAdds++;MPPTWattAdds++;printWattAdds++;
   }
+  nsWattAdds++;ewWattAdds++;MPPTWattAdds++;printWattAdds++;
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
     printDisplay();
