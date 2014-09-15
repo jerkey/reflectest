@@ -25,6 +25,7 @@
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
 #define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
 #define MINVOLT 0.7 // voltage below which PWM load must be restarted
+#define FET_THRESHOLD 55 // the analogWrite() value corresponding to transistor fully open
 #define N 0 // for arrays
 #define W 1
 #define S 2
@@ -63,7 +64,7 @@ float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
-int pwmVal[4] = {0}; // what we last sent to analogWrite
+int pwmVal[4] = {FET_THRESHOLD}; // what we last sent to analogWrite
 
 int EW = EWNULL; // position value of eastwest servo
 int NS = NSNULL; // position value of northsouth servo
@@ -195,10 +196,10 @@ void trackMPPT() {
     if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
     if (voltage[dir] < MINVOLT) {
       vector[dir] = 1; // start over
-      pwmVal[dir] = 0; // start over
+      pwmVal[dir] = FET_THRESHOLD; // start over
     }
     if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
-    if (pwmVal[dir] < 1) vector[dir] = 1; // important bounds checking
+    if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
     watt_last[dir] = wattage[dir]; // store previous cycle's data
