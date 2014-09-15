@@ -59,7 +59,7 @@ const String nwse = "NWSE"; // for printing info
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
 #define PRINTTIME 500     // time between printing display
-#define MPPTTIME 50     // time between load tracking calls
+#define MPPTTIME 25     // time between load tracking calls
 
 float voltage[4],current[4],wattage[4] = {0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0}; // for averaging wattages for trackers
