@@ -25,6 +25,7 @@
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
 #define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
 #define MINVOLT 0.7 // voltage below which PWM load must be restarted
+#define MINWATT 0.7 // voltage below which PWM load must only increase
 #define FET_THRESHOLD 55 // the analogWrite() value corresponding to transistor fully open
 #define N 0 // for arrays
 #define W 1
@@ -198,6 +199,7 @@ void trackMPPT() {
       vector[dir] = 1; // start over
       pwmVal[dir] = FET_THRESHOLD; // start over
     }
+    if (wattage[dir] < MINWATT) vector[dir] = 1; // increase the pwm until more wattage or we go below MINVOLT
     if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
     if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
