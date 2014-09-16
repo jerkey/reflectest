@@ -65,6 +65,7 @@ const String nwse = "NWSE"; // for printing info
 
 float voltage[4],current[4],wattage[4] = {0,0,0,0};
 float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
+float curves[4][256 - FET_THRESHOLD]; // store curve data for all cells
 int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
 int pwmVal[4] = {FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD}; // what we last sent to analogWrite
@@ -194,6 +195,31 @@ void trackNS() {
     NS += NDIR; // move the servo NORTH
     nsServo.writeMicroseconds(NS); // send it to the new location
   }
+}
+
+void curveTrace() {
+
+  if (MPPTWattAdds < 2) return; // we need averaged wattage
+  static float watt_last[4] = {0,0,0,0};
+  static int vector[4] = {1,1,1,1}; // which direction we're changing pwmVal this time
+  float wattage[4]; // note this should obscure the global wattage[] !!!
+  for (int dir = 0; dir < 4; dir++) {
+    wattage[dir] = round((MPPTWattAdder[dir] / MPPTWattAdds) * 1000); // round to 1mW
+    MPPTWattAdder[dir] = 0; // clear them out
+    if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
+    if (voltage[dir] < MINVOLT) {
+      vector[dir] = 1; // start over
+      pwmVal[dir] = FET_THRESHOLD; // start over
+    }
+    if (wattage[dir] < MINWATT) vector[dir] = 1; // increase the pwm until more wattage or we go below MINVOLT
+    if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
+    if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
+    pwmVal[dir] += vector[dir]; // change (up or down) PWM value
+    if ((mode & MPPT) == 0) pwmVal[dir] = FET_THRESHOLD; // MPPT is disabled right now
+    analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
+    watt_last[dir] = wattage[dir]; // store previous cycle's data
+  }
+  MPPTWattAdds = 0; // clear it out
 }
 
 void trackMPPT() {
