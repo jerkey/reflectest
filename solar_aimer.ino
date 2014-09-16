@@ -64,8 +64,8 @@ const String nwse = "NWSE"; // for printing info
 #define MPPT 2 // bit corresponding to current tracking
 
 float voltage[4],current[4],wattage[4] = {0,0,0,0};
-float nwseWattAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
-int nsWattAdds,ewWattAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
+float nwseVoltAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
+int nsVoltAdds,ewVoltAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
 int pwmVal[4] = {FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD}; // what we last sent to analogWrite
 unsigned mode = AIM; // what mode of operation we are in
@@ -98,11 +98,11 @@ void loop() {
     mode = MPPT;
   }
   for (int dir = 0; dir < 4; dir++) { // for averaging
-    nwseWattAdder[dir] += wattage[dir];
+    nwseVoltAdder[dir] += voltage[dir];
     MPPTWattAdder[dir] += wattage[dir];
     printWattAdder[dir] += wattage[dir];
   }
-  nsWattAdds++;ewWattAdds++;MPPTWattAdds++;printWattAdds++;
+  nsVoltAdds++;ewVoltAdds++;MPPTWattAdds++;printWattAdds++;
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
     printDisplay();
@@ -149,9 +149,9 @@ void printDisplay() {
 void trackEW() {
   static int walkVector = 1; // which direction we will wander
   // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
-  float east = voltage[E]; // nwseWattAdder[E] / ewWattAdds;
-  float west = voltage[W]; // nwseWattAdder[W] / ewWattAdds;
-  nwseWattAdder[E] = 0; nwseWattAdder[W] = 0; ewWattAdds = 0; // clear them out
+  float east = nwseVoltAdder[E] / ewVoltAdds;
+  float west = nwseVoltAdder[W] / ewVoltAdds;
+  nwseVoltAdder[E] = 0; nwseVoltAdder[W] = 0; ewVoltAdds = 0; // clear them out
   // float ratio = east / west;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
 
@@ -174,9 +174,9 @@ void trackEW() {
 void trackNS() {
   static int walkVector = 1; // which direction we will wander
   // static float minimumRatio = 10000; // lowest/best ratio we have achieved so far
-  float north = voltage[N]; // nwseWattAdder[N] / nsWattAdds;
-  float south = voltage[S]; // nwseWattAdder[S] / nsWattAdds;
-  nwseWattAdder[N] = 0; nwseWattAdder[S] = 0; nsWattAdds = 0; // clear them out
+  float north = nwseVoltAdder[N] / nsVoltAdds;
+  float south = nwseVoltAdder[S] / nsVoltAdds;
+  nwseVoltAdder[N] = 0; nwseVoltAdder[S] = 0; nsVoltAdds = 0; // clear them out
   // float ratio = north / south;
   // if (abs(ratio) < abs(minimumRatio)) minimumRatio = ratio; // store our best score
 
