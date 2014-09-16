@@ -198,6 +198,11 @@ void trackNS() {
 
 void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
+  static int interleaves = 0; // skip every other call to MPPT to allow tracking to stabilize
+  if (interleaves < 1) {
+    interleaves++;
+    return;
+  }
   static float watt_last[4] = {0,0,0,0};
   static int vector[4] = {1,1,1,1}; // which direction we're changing pwmVal this time
   float wattage[4]; // note this should obscure the global wattage[] !!!
@@ -218,6 +223,7 @@ void trackMPPT() {
     watt_last[dir] = wattage[dir]; // store previous cycle's data
   }
   MPPTWattAdds = 0; // clear it out
+  interleaves = 0; // restart the counter
 }
 
 void getVoltages() {
