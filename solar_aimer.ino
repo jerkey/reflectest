@@ -25,8 +25,8 @@
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
 #define NSWAYOFF 0.05 // total north+south wattage below this means aim is way off
 #define MINVOLT 0.7 // voltage below which PWM load must be restarted
-#define MINWATT 0.7 // voltage below which PWM load must only increase
-#define FET_THRESHOLD 55 // the analogWrite() value corresponding to transistor fully open
+#define MINWATT 100 // milliWatts below which PWM load must only increase
+#define FET_THRESHOLD 145 // the analogWrite() value corresponding to transistor fully open
 #define N 0 // for arrays
 #define W 1
 #define S 2
@@ -58,7 +58,7 @@ const String nwse = "NWSE"; // for printing info
 #define LOADPIN 2 // short this pin to ground to enable loading
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
-#define PRINTTIME 500     // time between printing display
+#define PRINTTIME 250     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
 #define AIM 1 // bit corresponding to aiming collector
 #define MPPT 2 // bit corresponding to current tracking
@@ -85,6 +85,7 @@ void setup() {
   pinMode(LOAD_S,OUTPUT);
   pinMode(LOAD_E,OUTPUT);
   digitalWrite(LOADPIN,HIGH); // turn on pull-up resistor on input
+  setPwmFrequency(3,32); // make 3, 11 about 1khz to match 5,6
 }
 
 unsigned long timenow, lastNS, lastEW, lastMPPT, lastPrint= 0; // keep track of time
@@ -106,6 +107,7 @@ void loop() {
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
     printDisplay();
+    trackMPPT();
     lastPrint = timenow;
   } else if (timenow - lastEW > TRACKEWTIME) {
     if (mode & AIM) trackEW();
@@ -114,7 +116,7 @@ void loop() {
     if (mode & AIM) trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
-    trackMPPT();
+    // trackMPPT(); synced with printDisplay now
     lastMPPT = timenow;
   }
 }
@@ -199,28 +201,28 @@ void trackNS() {
 void trackMPPT() {
   if (MPPTWattAdds < 2) return; // we need averaged wattage
   static int interleaves = 0; // skip every other call to MPPT to allow tracking to stabilize
-  if (interleaves < 1) {
+  if (interleaves < 0) {
     interleaves++;
     return;
   }
   static float watt_last[4] = {0,0,0,0};
   static int vector[4] = {1,1,1,1}; // which direction we're changing pwmVal this time
-  float wattage[4]; // note this should obscure the global wattage[] !!!
+  unsigned milliWatts[4]; // note this should obscure the global milliWatts[] !!!
   for (int dir = 0; dir < 4; dir++) {
-    wattage[dir] = round((MPPTWattAdder[dir] / MPPTWattAdds) * 1000); // round to 1mW
+    milliWatts[dir] = round((MPPTWattAdder[dir] / MPPTWattAdds) * 1000); // round to 1mW
     MPPTWattAdder[dir] = 0; // clear them out
-    if (watt_last[dir] > wattage[dir]) vector[dir] *= -1; // if we had more power last time, change direction
-    if (voltage[dir] < MINVOLT) {
-      vector[dir] = 1; // start over
-      pwmVal[dir] = FET_THRESHOLD; // start over
-    }
-    if (wattage[dir] < MINWATT) vector[dir] = 1; // increase the pwm until more wattage or we go below MINVOLT
-    if (pwmVal[dir] > 254) vector[dir] = -1; // important bounds checking
+    //if (watt_last[dir] > milliWatts[dir]) vector[dir] *= -1; // if we had more power last time, change direction
+    //if (voltage[dir] < MINVOLT) {
+    //  vector[dir] = 1; // start over
+    //  pwmVal[dir] = FET_THRESHOLD; // start over
+    //}
+    if (milliWatts[dir] < MINWATT) vector[dir] = 1; // increase the pwm until more milliWatts or we go below MINVOLT
+    if (pwmVal[dir] > 254) pwmVal[dir] = FET_THRESHOLD; // important bounds checking
     if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
     if ((mode & MPPT) == 0) pwmVal[dir] = FET_THRESHOLD; // MPPT is disabled right now
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
-    watt_last[dir] = wattage[dir]; // store previous cycle's data
+    watt_last[dir] = milliWatts[dir]; // store previous cycle's data
   }
   MPPTWattAdds = 0; // clear it out
   interleaves = 0; // restart the counter
@@ -236,4 +238,67 @@ void getVoltages() {
   current[S] = (analogRead(CURRENT_S) / I_COEFF);
   current[E] = (analogRead(CURRENT_E) / I_COEFF);
   for (int dir = 0; dir < 4; dir++) wattage[dir] = voltage[dir] * current[dir];
+}
+
+/**
+ * Divides a given PWM pin frequency by a divisor.
+ * 
+ * The resulting frequency is equal to the base frequency divided by
+ * the given divisor:
+ *   - Base frequencies:
+ *      o The base frequency for pins 3, 9, 10, and 11 is 31250 Hz.
+ *      o The base frequency for pins 5 and 6 is 62500 Hz.
+ *   - Divisors:
+ *      o The divisors available on pins 5, 6, 9 and 10 are: 1, 8, 64,
+ *        256, and 1024.
+ *      o The divisors available on pins 3 and 11 are: 1, 8, 32, 64,
+ *        128, 256, and 1024.
+ * 
+ * PWM frequencies are tied together in pairs of pins. If one in a
+ * pair is changed, the other is also changed to match:
+ *   - Pins 5 and 6 are paired on timer0
+ *   - Pins 9 and 10 are paired on timer1
+ *   - Pins 3 and 11 are paired on timer2
+ * 
+ * Note that this function will have side effects on anything else
+ * that uses timers:
+ *   - Changes on pins 3, 5, 6, or 11 may cause the delay() and
+ *     millis() functions to stop working. Other timing-related
+ *     functions may also be affected.
+ *   - Changes on pins 9 or 10 will cause the Servo library to function
+ *     incorrectly.
+ * 
+ * Thanks to macegr of the Arduino forums for his documentation of the
+ * PWM frequency divisors. His post can be viewed at:
+ *   http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1235060559/0#4
+ */
+void setPwmFrequency(int pin, int divisor) {
+  byte mode;
+  if(pin == 5 || pin == 6 || pin == 9 || pin == 10) {
+    switch(divisor) {
+      case 1: mode = 0x01; break;
+      case 8: mode = 0x02; break;
+      case 64: mode = 0x03; break;
+      case 256: mode = 0x04; break;
+      case 1024: mode = 0x05; break;
+      default: return;
+    }
+    if(pin == 5 || pin == 6) {
+      TCCR0B = TCCR0B & 0b11111000 | mode;
+    } else {
+      TCCR1B = TCCR1B & 0b11111000 | mode;
+    }
+  } else if(pin == 3 || pin == 11) {
+    switch(divisor) {
+      case 1: mode = 0x01; break;
+      case 8: mode = 0x02; break;
+      case 32: mode = 0x03; break;
+      case 64: mode = 0x04; break;
+      case 128: mode = 0x05; break;
+      case 256: mode = 0x06; break;
+      case 1024: mode = 0x7; break;
+      default: return;
+    }
+    TCCR2B = TCCR2B & 0b11111000 | mode;
+  }
 }
