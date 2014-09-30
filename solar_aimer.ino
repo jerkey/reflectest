@@ -58,7 +58,7 @@ const String nwse = "NWSE"; // for printing info
 #define LOADPIN 2 // short this pin to ground to enable loading
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
-#define PRINTTIME 250     // time between printing display
+#define PRINTTIME 1000     // time between printing display
 #define MPPTTIME 25     // time between load tracking calls
 #define AIM 1 // bit corresponding to aiming collector
 #define MPPT 2 // bit corresponding to current tracking
@@ -218,10 +218,12 @@ void trackMPPT() {
     //}
     if (milliWatts[dir] < MINWATT) vector[dir] = 1; // increase the pwm until more milliWatts or we go below MINVOLT
     if (pwmVal[dir] > 254) pwmVal[dir] = FET_THRESHOLD; // important bounds checking
+    else pwmVal[dir] = 254; // we will go back and forth measuring Voc and Isc
     if (pwmVal[dir] <= FET_THRESHOLD) vector[dir] = 1; // important bounds checking
     pwmVal[dir] += vector[dir]; // change (up or down) PWM value
     if ((mode & MPPT) == 0) pwmVal[dir] = FET_THRESHOLD; // MPPT is disabled right now
     analogWrite(pwmPin[dir],pwmVal[dir]); // actually set the load
+    delay(100); // let the load stablize before taking a reading
     watt_last[dir] = milliWatts[dir]; // store previous cycle's data
   }
   MPPTWattAdds = 0; // clear it out
