@@ -19,7 +19,7 @@
     The motors aim the assembly toward the sun to maximize solar collection.
     
 */
-#define BAUDRATE 57600
+#define BAUDRATE 9600
 #define EWHYST 0.01 // how much difference calls for tracking
 #define NSHYST 0.01
 #define EWWAYOFF 0.05 // total east+west wattage below this means aim is way off
@@ -59,12 +59,14 @@ const String nwse = "NWSE"; // for printing info
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
 #define PRINTTIME 1000     // time between printing display
-#define MPPTTIME 25     // time between load tracking calls
+#define MPPTTIME 500     // time between load tracking calls
 #define AIM 1 // bit corresponding to aiming collector
 #define MPPT 2 // bit corresponding to current tracking
 
 float voltage[4],current[4],wattage[4] = {0,0,0,0};
 float nwseVoltAdder[4],MPPTWattAdder[4],printWattAdder[4] = {0,0,0,0}; // for averaging wattages for trackers
+float VocAdder[4],IscAdder[4] = {0,0,0,0}; // for averaging Voc/Isc for reflector comparison
+int VocAdds, IscAdds = 0; // how many times these averages were added
 int nsVoltAdds,ewVoltAdds,MPPTWattAdds,printWattAdds = 0; // how many times adder was added
 const byte pwmPin[4] = {LOAD_N, LOAD_W, LOAD_S, LOAD_E};
 int pwmVal[4] = {FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD,FET_THRESHOLD}; // what we last sent to analogWrite
@@ -102,12 +104,14 @@ void loop() {
     nwseVoltAdder[dir] += voltage[dir];
     MPPTWattAdder[dir] += wattage[dir];
     printWattAdder[dir] += wattage[dir];
+    VocAdder[dir] += voltage[dir];
+    IscAdder[dir] += current[dir];
   }
   nsVoltAdds++;ewVoltAdds++;MPPTWattAdds++;printWattAdds++;
+  VocAdds++; IscAdds++;
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
-    printDisplay();
-    trackMPPT();
+    // printDisplay();
     lastPrint = timenow;
   } else if (timenow - lastEW > TRACKEWTIME) {
     if (mode & AIM) trackEW();
@@ -116,7 +120,8 @@ void loop() {
     if (mode & AIM) trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
-    // trackMPPT(); synced with printDisplay now
+    printVocIsc();
+    trackMPPT();
     lastMPPT = timenow;
   }
 }
@@ -146,6 +151,29 @@ void printDisplay() {
   Serial.print(NS);
   Serial.print("   EW:");
   Serial.println(EW);
+}
+
+void printVocIsc() {
+  float average = 0; // for Voc or Isc whatever we're doing this time
+  if (pwmVal[N] != 255) { // do Voc
+    for (int dir = 0; dir < 4; dir++) {
+      average += (VocAdder[dir] / VocAdds);
+      VocAdder[dir] = 0; // clear out adder
+    }
+    average /= 4; // average of four cells
+    VocAdds = 0; // cleared out adder
+    Serial.print(average,2);
+    Serial.print(" Voc ");
+  } else {
+    for (int dir = 0; dir < 4; dir++) {
+      average += (IscAdder[dir] / IscAdds);
+      IscAdder[dir] = 0; // clear out adder
+    }
+    average /= 4; // average of four cells
+    IscAdds = 0; // cleared out adder
+    Serial.print(average,2);
+    Serial.println(" Isc");
+  }
 }
 
 void trackEW() {
