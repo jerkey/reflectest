@@ -56,10 +56,11 @@ const String nwse = "NWSE"; // for printing info
 #define NSPIN 10 // pin number for northsouth servo
 #define EWPIN 9 // pin number for eastwest servo
 #define LOADPIN 2 // short this pin to ground to enable loading
+#define PRINTPIN 7 // short this pin to ground to print avg. Voc & Isc only
 #define TRACKEWTIME 40  // time between eastwest tracking calls
 #define TRACKNSTIME 40  // time between northsouth tracking calls
 #define PRINTTIME 1000     // time between printing display
-#define MPPTTIME 500     // time between load tracking calls
+#define MPPTTIME 250     // time between load tracking calls
 #define AIM 1 // bit corresponding to aiming collector
 #define MPPT 2 // bit corresponding to current tracking
 
@@ -87,6 +88,7 @@ void setup() {
   pinMode(LOAD_S,OUTPUT);
   pinMode(LOAD_E,OUTPUT);
   digitalWrite(LOADPIN,HIGH); // turn on pull-up resistor on input
+  digitalWrite(PRINTPIN,HIGH); // turn on pull-up resistor on input
   setPwmFrequency(3,32); // make 3, 11 about 1khz to match 5,6
 }
 
@@ -96,9 +98,9 @@ void loop() {
   timenow = millis();  // get the system time for this instance of loop()
   getVoltages();  // measure all voltages and current wattage
   if (digitalRead(LOADPIN)) {
-    mode = AIM;
-  } else {
     mode = MPPT;
+  } else {
+    mode = AIM;
   }
   for (int dir = 0; dir < 4; dir++) { // for averaging
     nwseVoltAdder[dir] += voltage[dir];
@@ -111,7 +113,7 @@ void loop() {
   VocAdds++; IscAdds++;
   
   if (timenow - lastPrint > PRINTTIME) { // run only one of these tracks per loop cycle
-    // printDisplay();
+  if (digitalRead(PRINTPIN)) printDisplay();
     lastPrint = timenow;
   } else if (timenow - lastEW > TRACKEWTIME) {
     if (mode & AIM) trackEW();
@@ -120,7 +122,7 @@ void loop() {
     if (mode & AIM) trackNS();
     lastNS = timenow;
   } else if (timenow - lastMPPT > MPPTTIME) {
-    printVocIsc();
+    if (!digitalRead(PRINTPIN)) printVocIsc();
     trackMPPT();
     lastMPPT = timenow;
   }
