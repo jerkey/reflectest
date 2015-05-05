@@ -1,0 +1,25 @@
+change AREF to 4v using a TL431
+using a 2K resistor and a 3.3K resistor
+>>> 2.4880/33*53
+3.9958787878787874t
+
+lift the ground legs of the TC op-amps,
+connect a red LED and capacitor from it to ground,
+and a 100ohm resistor from that leg to the minus of MAX232
+0.22uF caps at each op-amp leg to ground, and a 10uF tantalum
+
+remove R389-R396 or whatever pulls inv.inputs to ground
+
+install 0.1ohm resistors (300mA = 0.03V => 3.0V ADC)
+across inputs of thermocouple ports for solar currents
+
+connect - of thermocouple ports to drains of mosfets
+
+attach eight-pin header (on prototyping area) to grounds
+and to ADC ports
+
+connect + of thermocouple ports to eight-pin header anodes
+
+apogee pyranometer = 0.20 mV per W m-2 or 0.20 Volts @ 1000Wm^2
+change the two 100K resistors R353,R354 to 10K for TC11 port
+so that 1000Wm^2 = 2.0 volts at ADC
