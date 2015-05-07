@@ -155,7 +155,7 @@ void LogSolarData(boolean header = false) {
       }
       PrintColumn(analogs[i] * VOLTCOEFF);
     }
-  Serial.print(Temp_Data[10]*2.1579,0);
+  Serial.print(Temp_Data[10]*2.01579,0);
   Serial.print(", ");
   Serial.print((float)COMPENSATE((float)Temp_Data[0]/10),1);
   Serial.print(", ");
