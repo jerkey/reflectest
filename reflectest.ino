@@ -1,6 +1,7 @@
-/*  solar_aimer by jake sternberg 2013-6-28
-    this program runs on an atmega328 or similar, to monitor voltages
-    of four solar cells connected to FETs driven by PWM channels.
+/*  reflector tester by jake sternberg 2015-4-30
+    this program runs on a GCU/Kitchen Sink board, to monitor voltages
+    and currents of four solar cells, sometimes loading them, as well
+    as recording other sensors at the same time. CPU is ATMEGA1280-16AU
 
     Analog channels A0-A3 measure NWSE cells' voltage (positive terminal,
     their minus terminal is grounded)
