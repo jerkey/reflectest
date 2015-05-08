@@ -141,10 +141,12 @@ void LogSolarData(boolean header = false) {
 #define HOWMANY_AN 5
 #define VOLTCOEFF (3.998 / 10230) // voltage reference / (10 * 1023)
 #define COMPENSATE(x) ((((x) * (3998000l / (100ul * 41ul))) / 1024l) + 25)
+  byte mosfets[8] = {5,2,3,6,7,8,46,45};
   float analogs[HOWMANY_AN];
   if (header) {
     for (int i= 0; i<HOWMANY_AN; i++) PrintColumnHeader("ANA",i);
     Serial.print("W*m^2, Therm0, ");
+    for (int i= 0; i<4; i++) PrintColumnHeader("Isc",i);
   } else {
     for (int i= 0; i<HOWMANY_AN; i++) {
       analogs[i] = 0;
@@ -155,6 +157,11 @@ void LogSolarData(boolean header = false) {
   Serial.print(", ");
   Serial.print((float)COMPENSATE((float)Temp_Data[0]/10),1);
   Serial.print(", ");
+  for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
+  delay(100);
+  Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
+  for (int i= 0; i<4; i++) PrintColumn(Temp_Data[i+12] * VOLTCOEFF * 100); // print in milliAmperes
+  for (int i= 0; i<4; i++) digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
   }
 }
 
