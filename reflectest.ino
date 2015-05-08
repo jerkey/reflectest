@@ -1,5 +1,4 @@
 #include <adc.h>
-#include <display.h>
 #include <fet.h>
 #include <keypad.h>
 #include <pressure.h>
@@ -9,14 +8,19 @@
 #include <ui.h>
 #include <util.h>
 #include <avr/io.h>  
-// Datalogging variables
+#include <LiquidCrystal.h>
+
 unsigned int samplePeriod = 1000; // length of time between samples (call to loop())
 long unsigned int nextTime = 0;
 int lines = 0;
 
+LiquidCrystal lcd(39,41,22,23,24,25); // LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
 void setup() {
-  // timer initialization
-  nextTime = millis() + samplePeriod;
+  pinMode(40,OUTPUT); // LCD R/W pin to ground
+  lcd.begin(20, 4); // set up the LCD's number of columns and rows:
+  lcd.print("Optifold Cell Tester");
+  nextTime = millis() + samplePeriod; // timer initialization
   DoHeartBeatLED();
   delay(1);
   //Specify GCU: (version,fill,psequence)
@@ -25,9 +29,7 @@ void setup() {
   //psequence: for V3.01 boards, check sequence of P sensor part numbers (e.g. MXP7007 or MXP7002, and use last digit). V3.02 boards use P777722:
   // P777222, P222777, P777722
   GCU_Setup(V3,FULLFILL,P777722);
-  Disp_Init();
   Kpd_Init();
-  UI_Init();
   ADC_Init();
   Temp_Init();
   Press_Init();
@@ -35,7 +37,6 @@ void setup() {
   Servo_Init();
   Timer_Init();
 
-  // Disp_Reset();
   Kpd_Reset();
   UI_Reset();
   ADC_Reset();
@@ -66,9 +67,6 @@ void loop() {
   }
   
 // END USER CONTROL CODE
-  UI_DoScr();       // output the display screen data, 
-                    // (default User Interface functions are in library KS/ui.c)
-                    // XXX should be migrated out of library layer, up to sketch layer                      
   key = Kpd_GetKeyAsync();
                     // get key asynnchronous (doesn't wait for a keypress)
                     // returns -1 if no key
@@ -152,16 +150,23 @@ void LogSolarData(boolean header = false) {
       analogs[i] = 0;
       for (int t= 0; t<10; t++) analogs[i] += analogRead(ANA0 + i);
       PrintColumn(analogs[i] * VOLTCOEFF);
+      lcdPrintFloat(analogs[i] * VOLTCOEFF,i * 5,0); // fifth analog ends up on 3rd line...
     }
-  Serial.print(Temp_Data[10]*2.01579,0);
-  Serial.print(", ");
-  Serial.print((float)COMPENSATE((float)Temp_Data[0]/10),1);
-  Serial.print(", ");
-  for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
-  delay(100);
-  Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
-  for (int i= 0; i<4; i++) PrintColumn(Temp_Data[i+12] * VOLTCOEFF * 100); // print in milliAmperes
-  for (int i= 0; i<4; i++) digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
+    lcdPrint("5th cell volts",5,2); // label fifth analog
+    lcdPrintInt((int)Temp_Data[10]*2.01579,0,3);  lcdPrint("Wm2",4,3);
+    Serial.print(Temp_Data[10]*2.01579,0);
+    Serial.print(", ");
+    lcdPrintFloat((float)COMPENSATE((float)Temp_Data[0]/10),9,3);  lcdPrint("C   ",13,3);
+    Serial.print((float)COMPENSATE((float)Temp_Data[0]/10),1);
+    Serial.print(", ");
+    for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
+    delay(100);
+    Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
+    for (int i= 0; i<4; i++) {
+      digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
+      PrintColumn(Temp_Data[i+12] * VOLTCOEFF * 100); // print in milliAmperes
+      lcdPrintInt((int)Temp_Data[i+12] * VOLTCOEFF * 100,i * 5,1); // print currents
+    }
   }
 }
 
@@ -173,6 +178,21 @@ void LogTime(boolean header = false) {
   }
 }
 
+void lcdPrint(String str, byte col, byte row) {
+  lcd.setCursor(col,row);
+  lcd.print(str);
+  lcd.print("   ");
+}
+void lcdPrintInt(int str, byte col, byte row) {
+  lcd.setCursor(col,row);
+  lcd.print(str);
+  lcd.print("   ");
+}
+void lcdPrintFloat(float str, byte col, byte row) {
+  lcd.setCursor(col,row);
+  lcd.print(str,2);
+  lcd.print("   ");
+}
 
 void PrintColumnHeader(String str,int n) {
    Serial.print(str);
@@ -216,3 +236,11 @@ void DoDatalogging() {
     Serial.print("\r\n"); // end of line
     lines++;
 }
+
+/* LCD RS pin to digital pin 12     DISPRS  PG2     39
+ * LCD Enable to digital pin 11     DISPSTB PG0     41
+ * LCD D4 pin to digital pin 5      SCAN0   PA0     22
+ * LCD D5 pin to digital pin 4      SCAN1   PA1     23
+ * LCD D6 pin to digital pin 3      SCAN2   PA2     24
+ * LCD D7 pin to digital pin 2      SCAN3   PA3     25
+ * LCD R/W pin to ground            DISPRW  PG1     40  */
