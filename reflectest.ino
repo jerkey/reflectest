@@ -55,7 +55,7 @@ void setup() {
 void loop() {
   int key;
   // first, read all KS's sensors
-  Temp_ReadAll();  // reads into array Temp_Data[], in deg C
+  Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
   Press_ReadAll(); // reads into array Press_Data[], in hPa
   Timer_ReadAll(); // reads pulse timer into Timer_Data, in RPM ??? XXX
 
@@ -143,16 +143,12 @@ void LogSolarData(boolean header = false) {
 #define COMPENSATE(x) ((((x) * (3998000l / (100ul * 41ul))) / 1024l) + 25)
   float analogs[HOWMANY_AN];
   if (header) {
-    for (int i= 0; i<HOWMANY_AN; i++) {
-      PrintColumnHeader("ANA",i);
-    }
+    for (int i= 0; i<HOWMANY_AN; i++) PrintColumnHeader("ANA",i);
     Serial.print("W*m^2, Therm0, ");
   } else {
     for (int i= 0; i<HOWMANY_AN; i++) {
       analogs[i] = 0;
-      for (int t= 0; t<10; t++) {
-        analogs[i] += analogRead(ANA0 + i);
-      }
+      for (int t= 0; t<10; t++) analogs[i] += analogRead(ANA0 + i);
       PrintColumn(analogs[i] * VOLTCOEFF);
     }
   Serial.print(Temp_Data[10]*2.01579,0);
