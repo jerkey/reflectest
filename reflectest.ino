@@ -4,7 +4,6 @@
 #include <pressure.h>
 #include <servos.h>
 #include <temp.h>
-#include <timer.h>
 #include <ui.h>
 #include <util.h>
 #include <avr/io.h>  
@@ -35,7 +34,6 @@ void setup() {
   Press_Init();
   Fet_Init();
   Servo_Init();
-  Timer_Init();
 
   Kpd_Reset();
   UI_Reset();
@@ -44,7 +42,6 @@ void setup() {
   Press_Reset();
   Fet_Reset();
   Servo_Reset();
-  Timer_Reset();
 
   Serial.begin(115200);
   analogReference(EXTERNAL); // DEFAULT, INTERNAL, INTERNAL1V1, INTERNAL2V56, or EXTERNAL
@@ -58,7 +55,6 @@ void loop() {
   // first, read all KS's sensors
   Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
   Press_ReadAll(); // reads into array Press_Data[], in hPa
-  Timer_ReadAll(); // reads pulse timer into Timer_Data, in RPM ??? XXX
 
 // INSERT USER CONTROL CODE HERE
   if (millis() >= nextTime) {
