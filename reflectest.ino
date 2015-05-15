@@ -140,11 +140,13 @@ void LogSolarData(boolean header = false) {
 #define VOLTCOEFF (3.998 / 10230) // voltage reference / (10 * 1023)
 #define COMPENSATE(x) ((((x) * (3998000l / (100ul * 41ul))) / 1024l) + 25)
   byte mosfets[8] = {5,2,3,6,7,8,46,45};
+  float iCompensate[4] = {0.9991562949,0.9853196757,0.9928375152,0.9890956044};
   float analogs[HOWMANY_AN];
   if (header) {
     for (int i= 0; i<HOWMANY_AN; i++) PrintColumnHeader("ANA",i);
     Serial.print("W*m^2, Therm0, ");
     for (int i= 0; i<4; i++) PrintColumnHeader("Isc",i);
+    Serial.print("Total W");
   } else {
     for (int i= 0; i<HOWMANY_AN; i++) {
       analogs[i] = 0;
@@ -152,7 +154,7 @@ void LogSolarData(boolean header = false) {
       PrintColumn(analogs[i] * VOLTCOEFF);
       lcdPrintFloat(analogs[i] * VOLTCOEFF,i * 5,0); // fifth analog ends up on 3rd line...
     }
-    lcdPrint("5th cell volts",5,2); // label fifth analog
+    lcdPrint("5th",5,2); // label fifth analog
     lcdPrintInt((int)Temp_Data[10]*2.01579,0,3);  lcdPrint("Wm2",4,3);
     Serial.print(Temp_Data[10]*2.01579,0);
     Serial.print(", ");
@@ -162,11 +164,17 @@ void LogSolarData(boolean header = false) {
     for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
     delay(100);
     Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
+    float totalWattage = 0; // store total for wattage display
     for (int i= 0; i<4; i++) {
       digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
-      PrintColumn(Temp_Data[i+12] * VOLTCOEFF * 100); // print in milliAmperes
-      lcdPrintInt((int)Temp_Data[i+12] * VOLTCOEFF * 100,i * 5,1); // print currents
+      float milliAmps = Temp_Data[i+12] * iCompensate[i] * VOLTCOEFF * 100;
+      totalWattage += (milliAmps * analogs[i] * VOLTCOEFF) / 1000; // store wattage not milliwattage
+      PrintColumn(milliAmps); // print in milliAmperes
+      lcdPrintInt((int)milliAmps,i * 5,1); // print currents
     }
+    lcdPrintFloat(totalWattage,10,2);
+    lcdPrint("W",15,2); // label total watts
+    PrintColumn(totalWattage);
   }
 }
 
