@@ -15,6 +15,8 @@ int lines = 0;
 
 LiquidCrystal lcd(39,41,22,23,24,25); // LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
+#define DS18B21PIN 44 // PL5 on atmega1280, no pullup resistor :(
+
 void setup() {
   pinMode(40,OUTPUT); // LCD R/W pin to ground
   lcd.begin(20, 4); // set up the LCD's number of columns and rows:
