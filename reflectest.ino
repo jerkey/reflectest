@@ -10,7 +10,7 @@
 #include <avr/io.h>  
 #include <LiquidCrystal.h>
 
-unsigned int samplePeriod = 1000; // length of time between samples (call to loop())
+unsigned int samplePeriod = 500; // length of time between samples (call to loop())
 long unsigned int nextTime = 0;
 int lines = 0;
 
@@ -47,7 +47,7 @@ void setup() {
   Timer_Reset();
 
   Serial.begin(115200);
-  analogReference(EXTERNAL); // DEFAULT, INTERNAL, INTERNAL1V1, INTERNAL2V56, or EXTERNAL
+  analogReference(DEFAULT); // DEFAULT, INTERNAL, INTERNAL1V1, INTERNAL2V56, or EXTERNAL
   UI_NextScr(); // go to second screen
   UI_NextScr(); // go to third screen
   UI_NextScr(); // go to fourth screen
@@ -86,13 +86,13 @@ void loop() {
 
 void LogTempInputs(boolean header = false) {
   if (header) {
-      for (int i= 8; i<16; i++) { // THIS SETS HOW MANY TO PRINT TITLES FOR
+      for (int i= 0; i<8; i++) { // THIS SETS HOW MANY TO PRINT TITLES FOR
         if (Temp_Available[i]) {
           PrintColumnHeader("T",i);
         }
       }
   } else {
-    for (int i= 8; i<16; i++) { // THIS SETS HOW MANY THERMOCOUPLES TO PRINT
+    for (int i= 0; i<8; i++) { // THIS SETS HOW MANY THERMOCOUPLES TO PRINT
       if (Temp_Available[i]) {
         PrintColumnInt(Temp_Data[i]);
       }
@@ -237,10 +237,10 @@ void DoDatalogging() {
     }
     // Serial output for datalogging
     LogTime(header);
-    //LogTempInputs(header);
+    LogTempInputs(header);
     //LogPressureInputs(header);
     //LogAnalogInputs(header);
-    LogSolarData(header);
+    //LogSolarData(header);
     Serial.print("\r\n"); // end of line
     lines++;
 }
