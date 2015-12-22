@@ -13,11 +13,14 @@
 unsigned int samplePeriod = 1000; // length of time between samples (call to loop())
 long unsigned int nextTime = 0;
 int lines = 0;
+boolean clusterMode = false;
+byte mosfets[8] = {5,2,3,6,7,8,46,45}; // mosfet pin numbers
 
 LiquidCrystal lcd(39,41,22,23,24,25); // LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 void setup() {
   pinMode(40,OUTPUT); // LCD R/W pin to ground
+  for (int i= 0; i<8; i++) pinMode(mosfets[i],OUTPUT); // setup mosfet outputs
   lcd.begin(20, 4); // set up the LCD's number of columns and rows:
   lcd.print("Optifold Cell Tester");
   nextTime = millis() + samplePeriod; // timer initialization
@@ -82,6 +85,15 @@ void loop() {
         
   PORTJ ^= 0x80;    // toggle the heartbeat LED
   delay(10);
+  if (Serial.available()) {
+    byte inByte = Serial.read();
+    if (clusterMode) {
+      for (byte mosfetNumber = 0; mosfetNumber < 8; mosfetNumber++) {
+        digitalWrite(mosfets[mosfetNumber],inByte & 1<<mosfetNumber);
+      }
+    } else if (inByte == 65) clusterMode = true;
+    while (Serial.available()) byte inByte = Serial.read();
+  }
 }
 
 void LogTempInputs(boolean header = false) {
@@ -139,7 +151,6 @@ void LogSolarData(boolean header = false) {
 #define HOWMANY_AN 5
 #define VOLTCOEFF (3.998 / 10230) // voltage reference / (10 * 1023)
 #define COMPENSATE(x) ((((x) * (3998000l / (100ul * 41ul))) / 1024l) + 25)
-  byte mosfets[8] = {5,2,3,6,7,8,46,45};
   float iCompensate[4] = {0.9991562949,0.9853196757,0.9928375152,0.9890956044};
   float analogs[HOWMANY_AN];
   if (header) {
@@ -161,12 +172,12 @@ void LogSolarData(boolean header = false) {
     lcdPrintFloat((float)COMPENSATE((float)Temp_Data[0]/10),9,3);  lcdPrint("C   ",13,3);
     Serial.print((float)COMPENSATE((float)Temp_Data[0]/10),1);
     Serial.print(", ");
-    for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
+    if (!clusterMode) for (int i= 0; i<4; i++) digitalWrite(mosfets[i],HIGH); // turn on shorter MOSFETs
     delay(100);
     Temp_ReadAll();  // reads into array Temp_Data[], in 10X oversampled analogReads
     float totalWattage = 0; // store total for wattage display
     for (int i= 0; i<4; i++) {
-      digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
+      if (!clusterMode) digitalWrite(mosfets[i],LOW); // turn OFF shorter MOSFETs
       float milliAmps = Temp_Data[i+12] * iCompensate[i] * VOLTCOEFF * 100;
       totalWattage += (milliAmps * analogs[i] * VOLTCOEFF) / 1000; // store wattage not milliwattage
       PrintColumn(milliAmps); // print in milliAmperes
